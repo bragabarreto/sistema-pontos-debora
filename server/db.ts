@@ -89,4 +89,201 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Children queries
+export async function getChildrenByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { children } = await import("../drizzle/schema");
+  return db.select().from(children).where(eq(children.userId, userId));
+}
+
+export async function getChildById(childId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { children } = await import("../drizzle/schema");
+  const result = await db.select().from(children)
+    .where(eq(children.id, childId))
+    .limit(1);
+  return result[0]?.userId === userId ? result[0] : undefined;
+}
+
+export async function createChild(data: { userId: number; name: string; initialBalance?: number; startDate?: Date }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { children } = await import("../drizzle/schema");
+  const result = await db.insert(children).values({
+    userId: data.userId,
+    name: data.name,
+    initialBalance: data.initialBalance ?? 0,
+    startDate: data.startDate,
+    totalPoints: data.initialBalance ?? 0,
+  });
+  return result;
+}
+
+export async function updateChild(childId: number, userId: number, data: { name?: string; initialBalance?: number; startDate?: Date }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { children } = await import("../drizzle/schema");
+  const { and } = await import("drizzle-orm");
+  await db.update(children)
+    .set(data)
+    .where(and(eq(children.id, childId), eq(children.userId, userId)));
+}
+
+export async function deleteChild(childId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { children } = await import("../drizzle/schema");
+  const { and } = await import("drizzle-orm");
+  await db.delete(children).where(and(eq(children.id, childId), eq(children.userId, userId)));
+}
+
+// Activities queries
+export async function getActivitiesByChild(childId: number, userId: number, limit?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { activities } = await import("../drizzle/schema");
+  const { and, desc } = await import("drizzle-orm");
+  let query = db.select().from(activities)
+    .where(and(eq(activities.childId, childId), eq(activities.userId, userId)))
+    .orderBy(desc(activities.date));
+  if (limit) {
+    query = query.limit(limit) as any;
+  }
+  return query;
+}
+
+export async function createActivity(data: { userId: number; childId: number; name: string; points: number; category: string; date: Date; multiplier: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { activities } = await import("../drizzle/schema");
+  const result = await db.insert(activities).values(data);
+  return result;
+}
+
+export async function deleteActivity(activityId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { activities } = await import("../drizzle/schema");
+  const { and } = await import("drizzle-orm");
+  await db.delete(activities).where(and(eq(activities.id, activityId), eq(activities.userId, userId)));
+}
+
+// Custom Activities queries
+export async function getCustomActivitiesByChild(childId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { customActivities } = await import("../drizzle/schema");
+  const { and, asc } = await import("drizzle-orm");
+  return db.select().from(customActivities)
+    .where(and(eq(customActivities.childId, childId), eq(customActivities.userId, userId)))
+    .orderBy(asc(customActivities.orderIndex));
+}
+
+export async function createCustomActivity(data: { userId: number; childId: number; activityId: string; name: string; points: number; category: string; orderIndex: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { customActivities } = await import("../drizzle/schema");
+  const result = await db.insert(customActivities).values(data);
+  return result;
+}
+
+export async function updateCustomActivity(id: number, userId: number, data: { name?: string; points?: number; orderIndex?: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { customActivities } = await import("../drizzle/schema");
+  const { and } = await import("drizzle-orm");
+  await db.update(customActivities)
+    .set(data)
+    .where(and(eq(customActivities.id, id), eq(customActivities.userId, userId)));
+}
+
+export async function deleteCustomActivity(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { customActivities } = await import("../drizzle/schema");
+  const { and } = await import("drizzle-orm");
+  await db.delete(customActivities).where(and(eq(customActivities.id, id), eq(customActivities.userId, userId)));
+}
+
+// Settings queries
+export async function getSetting(userId: number, key: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { settings } = await import("../drizzle/schema");
+  const { and } = await import("drizzle-orm");
+  const result = await db.select().from(settings)
+    .where(and(eq(settings.userId, userId), eq(settings.key, key)))
+    .limit(1);
+  return result[0];
+}
+
+export async function upsertSetting(userId: number, key: string, value: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { settings } = await import("../drizzle/schema");
+  
+  const existing = await getSetting(userId, key);
+  if (existing) {
+    const { and } = await import("drizzle-orm");
+    await db.update(settings)
+      .set({ value })
+      .where(and(eq(settings.userId, userId), eq(settings.key, key)));
+  } else {
+    await db.insert(settings).values({ userId, key, value });
+  }
+}
+
+// Expenses queries
+export async function getExpensesByChild(childId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { expenses } = await import("../drizzle/schema");
+  const { and, desc } = await import("drizzle-orm");
+  return db.select().from(expenses)
+    .where(and(eq(expenses.childId, childId), eq(expenses.userId, userId)))
+    .orderBy(desc(expenses.date));
+}
+
+export async function createExpense(data: { userId: number; childId: number; description: string; amount: number; date: Date }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { expenses } = await import("../drizzle/schema");
+  const result = await db.insert(expenses).values(data);
+  return result;
+}
+
+export async function deleteExpense(expenseId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { expenses } = await import("../drizzle/schema");
+  const { and } = await import("drizzle-orm");
+  await db.delete(expenses).where(and(eq(expenses.id, expenseId), eq(expenses.userId, userId)));
+}
+
+// Parent Data queries
+export async function getParentData(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { parentData } = await import("../drizzle/schema");
+  const result = await db.select().from(parentData)
+    .where(eq(parentData.userId, userId))
+    .limit(1);
+  return result[0];
+}
+
+export async function upsertParentData(data: { userId: number; name: string; gender?: string; appStartDate: Date }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { parentData } = await import("../drizzle/schema");
+  
+  const existing = await getParentData(data.userId);
+  if (existing) {
+    await db.update(parentData)
+      .set({ name: data.name, gender: data.gender, appStartDate: data.appStartDate })
+      .where(eq(parentData.userId, data.userId));
+  } else {
+    await db.insert(parentData).values(data);
+  }
+}
