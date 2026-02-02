@@ -31,7 +31,6 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Users, label: "Atividades", path: "/activities" },
   { icon: Users, label: "Atividades Personalizadas", path: "/custom-activities" },
-  { icon: DollarSign, label: "Gastos", path: "/expenses" },
   { icon: TrendingUp, label: "Relatórios", path: "/reports" },
   { icon: SettingsIcon, label: "Configurações", path: "/settings" },
   { icon: Database, label: "Backup", path: "/backup" },

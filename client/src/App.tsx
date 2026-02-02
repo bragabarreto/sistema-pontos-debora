@@ -7,10 +7,10 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import { useState } from "react";
 import { ChildSelector } from "./components/ChildSelector";
-import Dashboard from "./pages/Dashboard";
+import DashboardNew from "./pages/DashboardNew";
 import Activities from "./pages/Activities";
 import Settings from "./pages/Settings";
-import Expenses from "./pages/Expenses";
+
 import CustomActivities from "./pages/CustomActivities";
 import Reports from "./pages/Reports";
 import Backup from "./pages/Backup";
@@ -48,7 +48,7 @@ function MainApp() {
             <Switch>
               <Route path="/">
                 {selectedChildId ? (
-                  <Dashboard childId={selectedChildId} />
+                  <DashboardNew childId={selectedChildId} />
                 ) : (
                   <div className="text-center py-12">
                     <p className="text-muted-foreground">Adicione uma criança nas Configurações</p>
@@ -73,15 +73,7 @@ function MainApp() {
                   </div>
                 )}
               </Route>
-              <Route path="/expenses">
-                {selectedChildId ? (
-                  <Expenses childId={selectedChildId} />
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">Adicione uma criança nas Configurações</p>
-                  </div>
-                )}
-              </Route>
+
               <Route path="/custom-activities">
                 {selectedChildId ? (
                   <CustomActivities childId={selectedChildId} />

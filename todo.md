@@ -47,7 +47,17 @@
 - [ ] Importar dados de backup (em desenvolvimento)
 - [ ] Testes de integração
 - [ ] Validação de todas as funcionalidades
+
+## Fase 8: Replicar Funcionalidades do Original
+- [x] Implementar balance-calculator (cálculo progressivo diário)
+- [x] Reimplementar Dashboard com 5 cards de métricas diárias
+- [x] Adicionar histórico diário com tabela e gráfico
+- [x] Integrar gastos no Dashboard (remover página separada)
+- [x] Adicionar relógio em tempo real
+- [x] Configurar timezone de Fortaleza em todas as datas
+- [x] Formatar datas com dia da semana completo
+- [x] Ajustar cálculo de saldo inicial diário (progressivo)
 ## Fase 7: Entrega
 - [x] Documentação de uso
-- [ ] Criar checkpoint final
+- [x] Criar checkpoint final
 - [ ] Exportar para GitHub
