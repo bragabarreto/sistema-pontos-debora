@@ -7,28 +7,59 @@ import { Activities } from '@/components/Activities';
 import { Reports } from '@/components/Reports';
 import { Settings } from '@/components/Settings';
 
+interface AppSettings {
+  title: string;
+  subtitle: string;
+  titleEmoji: string;
+  primaryColor: string;
+  secondaryColor: string;
+  child1Emoji: string;
+  child2Emoji: string;
+}
+
+const defaultAppSettings: AppSettings = {
+  title: 'Sistema de Pontuação',
+  subtitle: 'Incentivando bons comportamentos!',
+  titleEmoji: '🏆',
+  primaryColor: '#667eea',
+  secondaryColor: '#764ba2',
+  child1Emoji: '👦',
+  child2Emoji: '👧',
+};
+
 export default function Home() {
   const [currentChild, setCurrentChild] = useState<number | null>(null);
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [children, setChildren] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [appSettings, setAppSettings] = useState<AppSettings>(defaultAppSettings);
 
   useEffect(() => {
     loadChildren();
+    loadAppSettings();
   }, []);
+
+  // Apply dynamic colors to CSS variables
+  useEffect(() => {
+    const root = document.documentElement;
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '102, 126, 234';
+    };
+    root.style.setProperty('--background-start-rgb', hexToRgb(appSettings.primaryColor));
+    root.style.setProperty('--background-end-rgb', hexToRgb(appSettings.secondaryColor));
+  }, [appSettings.primaryColor, appSettings.secondaryColor]);
 
   const loadChildren = async () => {
     try {
       const response = await fetch('/api/children');
       const data = await response.json();
       
-      // Validate that the response is an array before using it
       if (Array.isArray(data)) {
         setChildren(data);
         setError(null);
         
-        // Auto-select first child if available
         if (data.length > 0 && !currentChild) {
           setCurrentChild(data[0].id);
         }
@@ -46,7 +77,29 @@ export default function Home() {
     }
   };
 
+  const loadAppSettings = async () => {
+    try {
+      const response = await fetch('/api/settings?key=appSettings');
+      const data = await response.json();
+      if (data?.value) {
+        setAppSettings({ ...defaultAppSettings, ...data.value });
+      }
+    } catch (error) {
+      console.error('Error loading app settings:', error);
+    }
+  };
+
   const selectedChildData = Array.isArray(children) ? children.find(c => c.id === currentChild) : undefined;
+
+  // Generate subtitle with children names
+  const getSubtitle = () => {
+    if (children.length >= 2) {
+      return `${children[0].name} e ${children[1].name} - ${appSettings.subtitle}`;
+    } else if (children.length === 1) {
+      return `${children[0].name} - ${appSettings.subtitle}`;
+    }
+    return appSettings.subtitle;
+  };
 
   if (loading) {
     return (
@@ -81,14 +134,16 @@ export default function Home() {
     <main className="min-h-screen p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <header className="text-center text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">🏆 Sistema de Pontuação</h1>
-          <p className="text-lg">Luiza e Miguel - Incentivando bons comportamentos!</p>
+          <h1 className="text-4xl font-bold mb-2">{appSettings.titleEmoji} {appSettings.title}</h1>
+          <p className="text-lg">{getSubtitle()}</p>
         </header>
 
         <ChildSelector
           childrenList={children}
           currentChild={currentChild}
           onSelectChild={setCurrentChild}
+          child1Emoji={appSettings.child1Emoji}
+          child2Emoji={appSettings.child2Emoji}
         />
 
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -138,7 +193,7 @@ export default function Home() {
           {currentTab === 'dashboard' && <Dashboard childId={currentChild} childData={selectedChildData} />}
           {currentTab === 'activities' && <Activities childId={currentChild} onUpdate={loadChildren} />}
           {currentTab === 'reports' && <Reports childId={currentChild} />}
-          {currentTab === 'settings' && <Settings childId={currentChild} onUpdate={loadChildren} />}
+          {currentTab === 'settings' && <Settings childId={currentChild} onUpdate={() => { loadChildren(); loadAppSettings(); }} />}
         </div>
       </div>
     </main>

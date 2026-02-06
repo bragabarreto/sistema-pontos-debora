@@ -7,6 +7,28 @@ interface SettingsProps {
   onUpdate: () => void;
 }
 
+interface AppSettings {
+  title: string;
+  subtitle: string;
+  titleEmoji: string;
+  primaryColor: string;
+  secondaryColor: string;
+  child1Emoji: string;
+  child2Emoji: string;
+}
+
+const defaultAppSettings: AppSettings = {
+  title: 'Sistema de Pontuação',
+  subtitle: 'Incentivando bons comportamentos!',
+  titleEmoji: '🏆',
+  primaryColor: '#667eea',
+  secondaryColor: '#764ba2',
+  child1Emoji: '👦',
+  child2Emoji: '👧',
+};
+
+const emojiOptions = ['👦', '👧', '👶', '🧒', '👨', '👩', '🧑', '👸', '🤴', '🦸', '🦹', '🧚', '🧙', '⭐', '🌟', '💫', '✨', '🎯', '🏆', '🎖️', '🥇', '🎪', '🎨', '🎭', '🎬', '🎤', '🎧', '🎮', '🎲', '🧩', '🎁', '🎀', '🎈', '🎉', '🎊', '❤️', '💖', '💝', '💗', '💓', '💕', '💜', '💙', '💚', '💛', '🧡', '🤍', '🖤', '🤎'];
+
 export function Settings({ childId, onUpdate }: SettingsProps) {
   const [multipliers, setMultipliers] = useState({
     positivos: 10,
@@ -26,9 +48,19 @@ export function Settings({ childId, onUpdate }: SettingsProps) {
   const [childInitialBalance, setChildInitialBalance] = useState(0);
   const [childStartDate, setChildStartDate] = useState('');
 
+  // App appearance settings
+  const [appSettings, setAppSettings] = useState<AppSettings>(defaultAppSettings);
+
+  // Children names state
+  const [children, setChildren] = useState<any[]>([]);
+  const [child1Name, setChild1Name] = useState('');
+  const [child2Name, setChild2Name] = useState('');
+
   useEffect(() => {
     loadSettings();
     loadParentInfo();
+    loadAppSettings();
+    loadChildrenNames();
     if (childId) {
       loadChildInfo();
     }
@@ -45,6 +77,32 @@ export function Settings({ childId, onUpdate }: SettingsProps) {
       console.error('Error loading settings:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAppSettings = async () => {
+    try {
+      const response = await fetch('/api/settings?key=appSettings');
+      const data = await response.json();
+      if (data?.value) {
+        setAppSettings({ ...defaultAppSettings, ...data.value });
+      }
+    } catch (error) {
+      console.error('Error loading app settings:', error);
+    }
+  };
+
+  const loadChildrenNames = async () => {
+    try {
+      const response = await fetch('/api/children');
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setChildren(data);
+        if (data.length >= 1) setChild1Name(data[0].name);
+        if (data.length >= 2) setChild2Name(data[1].name);
+      }
+    } catch (error) {
+      console.error('Error loading children:', error);
     }
   };
 
@@ -95,9 +153,50 @@ export function Settings({ childId, onUpdate }: SettingsProps) {
     }
   };
 
+  const saveAppSettings = async () => {
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'appSettings',
+          value: appSettings,
+        }),
+      });
+      alert('Configurações de aparência salvas com sucesso!');
+      onUpdate();
+    } catch (error) {
+      console.error('Error saving app settings:', error);
+      alert('Erro ao salvar configurações de aparência');
+    }
+  };
+
+  const saveChildrenNames = async () => {
+    try {
+      if (children.length >= 1 && child1Name) {
+        await fetch(`/api/children/${children[0].id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: child1Name }),
+        });
+      }
+      if (children.length >= 2 && child2Name) {
+        await fetch(`/api/children/${children[1].id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: child2Name }),
+        });
+      }
+      alert('Nomes das crianças salvos com sucesso!');
+      onUpdate();
+    } catch (error) {
+      console.error('Error saving children names:', error);
+      alert('Erro ao salvar nomes das crianças');
+    }
+  };
+
   const exportData = async () => {
     try {
-      // Fetch all data
       const [childrenRes, activitiesRes, customActivitiesRes, settingsRes] = await Promise.all([
         fetch('/api/children'),
         fetch('/api/activities'),
@@ -105,16 +204,15 @@ export function Settings({ childId, onUpdate }: SettingsProps) {
         fetch('/api/settings'),
       ]);
 
-      const [children, activities, customActivities, settings] = await Promise.all([
+      const [childrenData, activities, customActivities, settings] = await Promise.all([
         childrenRes.json(),
         activitiesRes.json(),
         customActivitiesRes.json(),
         settingsRes.json(),
       ]);
 
-      // Validate that arrays are actually arrays
       const exportData = {
-        children: Array.isArray(children) ? children : [],
+        children: Array.isArray(childrenData) ? childrenData : [],
         activities: Array.isArray(activities) ? activities : [],
         customActivities: Array.isArray(customActivities) ? customActivities : [],
         settings: Array.isArray(settings) ? settings : [],
@@ -243,7 +341,6 @@ export function Settings({ childId, onUpdate }: SettingsProps) {
     }
   };
 
-  // Drag and drop handlers
   if (loading) {
     return <div className="text-center text-gray-500">Carregando...</div>;
   }
@@ -251,6 +348,164 @@ export function Settings({ childId, onUpdate }: SettingsProps) {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">⚙️ Configurações</h2>
+
+      {/* App Appearance Section */}
+      <div className="mb-8 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg p-4">
+        <h3 className="text-xl font-bold mb-4">🎨 Personalização do Aplicativo</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2">Título do Aplicativo:</label>
+            <input
+              type="text"
+              value={appSettings.title}
+              onChange={(e) => setAppSettings({ ...appSettings, title: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Sistema de Pontuação"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Emoji do Título:</label>
+            <select
+              value={appSettings.titleEmoji}
+              onChange={(e) => setAppSettings({ ...appSettings, titleEmoji: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-2xl"
+            >
+              {emojiOptions.map((emoji) => (
+                <option key={emoji} value={emoji}>{emoji}</option>
+              ))}
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold mb-2">Subtítulo:</label>
+            <input
+              type="text"
+              value={appSettings.subtitle}
+              onChange={(e) => setAppSettings({ ...appSettings, subtitle: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Incentivando bons comportamentos!"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2">Cor Principal:</label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                value={appSettings.primaryColor}
+                onChange={(e) => setAppSettings({ ...appSettings, primaryColor: e.target.value })}
+                className="w-16 h-10 border border-gray-300 rounded-md cursor-pointer"
+              />
+              <input
+                type="text"
+                value={appSettings.primaryColor}
+                onChange={(e) => setAppSettings({ ...appSettings, primaryColor: e.target.value })}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="#667eea"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Cor Secundária:</label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                value={appSettings.secondaryColor}
+                onChange={(e) => setAppSettings({ ...appSettings, secondaryColor: e.target.value })}
+                className="w-16 h-10 border border-gray-300 rounded-md cursor-pointer"
+              />
+              <input
+                type="text"
+                value={appSettings.secondaryColor}
+                onChange={(e) => setAppSettings({ ...appSettings, secondaryColor: e.target.value })}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="#764ba2"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2">Emoji da Criança 1:</label>
+            <select
+              value={appSettings.child1Emoji}
+              onChange={(e) => setAppSettings({ ...appSettings, child1Emoji: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-2xl"
+            >
+              {emojiOptions.map((emoji) => (
+                <option key={emoji} value={emoji}>{emoji}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Emoji da Criança 2:</label>
+            <select
+              value={appSettings.child2Emoji}
+              onChange={(e) => setAppSettings({ ...appSettings, child2Emoji: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-2xl"
+            >
+              {emojiOptions.map((emoji) => (
+                <option key={emoji} value={emoji}>{emoji}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="p-3 bg-white rounded-md border mb-4">
+          <p className="text-sm text-gray-600 mb-2">Pré-visualização:</p>
+          <div className="text-center p-4 rounded-md" style={{ background: `linear-gradient(to right, ${appSettings.primaryColor}, ${appSettings.secondaryColor})` }}>
+            <h4 className="text-2xl font-bold text-white">{appSettings.titleEmoji} {appSettings.title}</h4>
+            <p className="text-white">{appSettings.subtitle}</p>
+            <div className="flex justify-center gap-4 mt-2">
+              <span className="bg-white/20 px-3 py-1 rounded text-white">{appSettings.child1Emoji} {child1Name || 'Criança 1'}</span>
+              <span className="bg-white/20 px-3 py-1 rounded text-white">{appSettings.child2Emoji} {child2Name || 'Criança 2'}</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={saveAppSettings}
+          className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-2 rounded-md hover:from-pink-600 hover:to-purple-600 font-semibold"
+        >
+          💾 Salvar Aparência
+        </button>
+      </div>
+
+      {/* Children Names Section */}
+      <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <h3 className="text-xl font-bold mb-4">👶 Nomes das Crianças</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2">Nome da Criança 1:</label>
+            <input
+              type="text"
+              value={child1Name}
+              onChange={(e) => setChild1Name(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Nome da primeira criança"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">Nome da Criança 2:</label>
+            <input
+              type="text"
+              value={child2Name}
+              onChange={(e) => setChild2Name(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Nome da segunda criança"
+            />
+          </div>
+        </div>
+        <button
+          onClick={saveChildrenNames}
+          className="bg-yellow-500 text-white px-6 py-2 rounded-md hover:bg-yellow-600 font-semibold"
+        >
+          💾 Salvar Nomes
+        </button>
+      </div>
 
       {/* Parent User Registration Section */}
       <div className="mb-8 bg-purple-50 border border-purple-200 rounded-lg p-4">
