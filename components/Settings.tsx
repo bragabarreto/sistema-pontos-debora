@@ -9,10 +9,10 @@ interface SettingsProps {
 
 export function Settings({ childId, onUpdate }: SettingsProps) {
   const [multipliers, setMultipliers] = useState({
-    positivos: 1,
-    especiais: 50,
-    negativos: 1,
-    graves: 100,
+    positivos: 10,
+    especiais: 100,
+    negativos: -10,
+    graves: -100,
   });
   const [loading, setLoading] = useState(true);
   
