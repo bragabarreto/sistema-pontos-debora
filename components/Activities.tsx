@@ -301,7 +301,7 @@ export function Activities({ childId, onUpdate }: ActivitiesProps) {
       if (response.ok) {
         loadCustomActivities();
         closeEditModal();
-        alert('Atividade atualizada com sucesso para ambas as crianças!');
+        alert('Atividade atualizada com sucesso!');
       } else {
         const data = await response.json();
         alert(`Erro: ${data.error || 'Erro ao atualizar atividade'}`);
@@ -314,7 +314,7 @@ export function Activities({ childId, onUpdate }: ActivitiesProps) {
 
   // Delete custom activity
   const deleteCustomActivity = async (activityId: number) => {
-    if (!confirm('Tem certeza que deseja excluir esta atividade personalizada? Ela será removida para ambas as crianças (Luiza e Miguel).')) return;
+    if (!confirm('Tem certeza que deseja excluir esta atividade personalizada?')) return;
 
     try {
       const response = await fetch(`/api/custom-activities/${activityId}`, {
@@ -324,7 +324,7 @@ export function Activities({ childId, onUpdate }: ActivitiesProps) {
       if (response.ok) {
         loadCustomActivities();
         onUpdate();
-        alert('Atividade excluída com sucesso para ambas as crianças!');
+        alert('Atividade excluída com sucesso!');
       } else {
         const data = await response.json();
         alert(`Erro: ${data.error || 'Erro ao excluir atividade'}`);
@@ -347,20 +347,20 @@ export function Activities({ childId, onUpdate }: ActivitiesProps) {
     const otherActivity = categoryActivities[newIndex];
 
     try {
-      // Swap order indices - now synchronized for both children
+      // Swap order indices for this child only
       await fetch('/api/custom-activities/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           childId,
           category: activity.category,
-          activityId: activity.activityId,
+          activityId: activity.id,
           direction,
         }),
       });
 
       loadCustomActivities();
-      alert(`Atividade movida para ${direction === 'up' ? 'cima' : 'baixo'} (sincronizado para ambas as crianças)!`);
+      alert(`Atividade movida para ${direction === 'up' ? 'cima' : 'baixo'}!`);
     } catch (error) {
       console.error('Error reordering activities:', error);
       alert('Erro ao reordenar atividades');
@@ -383,7 +383,7 @@ export function Activities({ childId, onUpdate }: ActivitiesProps) {
     setNewActivityPoints(0);
   };
 
-  // Save new activity (creates for both children)
+  // Save new activity (creates for this child only)
   const saveNewActivity = async () => {
     if (!newActivityName || newActivityPoints <= 0) {
       alert('Por favor, preencha todos os campos corretamente');
@@ -409,7 +409,7 @@ export function Activities({ childId, onUpdate }: ActivitiesProps) {
       if (response.ok) {
         loadCustomActivities();
         closeNewActivityModal();
-        alert('Atividade criada com sucesso para ambas as crianças!');
+        alert('Atividade criada com sucesso!');
       } else {
         const data = await response.json();
         alert(`Erro: ${data.error || 'Erro ao criar atividade'}`);
@@ -717,7 +717,7 @@ export function Activities({ childId, onUpdate }: ActivitiesProps) {
               />
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              ℹ️ Esta alteração será aplicada para ambas as crianças (Luiza e Miguel).
+              ℹ️ Esta alteração será aplicada apenas para esta criança.
             </p>
             <div className="flex gap-3">
               <button
@@ -772,7 +772,7 @@ export function Activities({ childId, onUpdate }: ActivitiesProps) {
               />
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              ℹ️ Esta atividade será criada para ambas as crianças (Luiza e Miguel).
+              ℹ️ Esta atividade será criada apenas para esta criança.
             </p>
             <div className="flex gap-3">
               <button

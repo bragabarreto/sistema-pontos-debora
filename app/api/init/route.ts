@@ -34,31 +34,31 @@ const defaultActivities = {
 
 export async function POST() {
   try {
-    // Create children
-    const [luiza, miguel] = await db.insert(children).values([
+    // Create children with correct names
+    const [pauloVictor, melissa] = await db.insert(children).values([
       {
-        name: 'Luiza',
+        name: 'Paulo Victor',
         initialBalance: 0,
         totalPoints: 0,
         startDate: new Date(),
       },
       {
-        name: 'Miguel',
+        name: 'Melissa',
         initialBalance: 0,
         totalPoints: 0,
         startDate: new Date(),
       }
     ]).returning();
 
-    // Create custom activities for both children
+    // Create custom activities for both children (independent lists)
     const activitiesToInsert = [];
     
-    for (const child of [luiza, miguel]) {
+    for (const child of [pauloVictor, melissa]) {
       for (const [category, items] of Object.entries(defaultActivities)) {
         for (const item of items) {
           activitiesToInsert.push({
             childId: child.id,
-            activityId: `${child.name.toLowerCase()}-${item.id}`,
+            activityId: `child${child.id}_${item.id}`,
             name: item.name,
             points: item.points,
             category,
@@ -81,12 +81,12 @@ export async function POST() {
     });
 
     return NextResponse.json({
-      message: 'Database initialized successfully',
-      children: [luiza, miguel],
+      message: 'Banco de dados inicializado com sucesso',
+      children: [pauloVictor, melissa],
       activities: activitiesToInsert.length,
     });
   } catch (error) {
     console.error('Error initializing database:', error);
-    return NextResponse.json({ error: 'Failed to initialize database', details: error }, { status: 500 });
+    return NextResponse.json({ error: 'Falha ao inicializar banco de dados', details: error }, { status: 500 });
   }
 }
